@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="apple-touch-icon" href="./icon_ios.png">
+    <link rel="manifest" href="manifest.json">
     <title>赤ちゃんタッチゲーム</title>
     <style>
         * {
@@ -401,6 +402,17 @@
         window.addEventListener('resize', () => {
             location.reload();
         });
+
+        // service-worker
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('service-worker.js')
+            .then(function(registration) {
+              console.log('ServiceWorker registration successful:', registration);
+            })
+            .catch(function(error) {
+              console.log('ServiceWorker registration failed:', error);
+            });
+        }
     </script>
 </body>
 </html>

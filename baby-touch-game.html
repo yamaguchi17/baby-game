@@ -156,6 +156,166 @@
     </div>
 
     <script>
+        // ボールタッチ用の効果音を生成する関数
+        function createBallTouchSound() {
+            // Web Audio APIのコンテキストを作成
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // オシレーターを作成（ポップな音）
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = 'sine'; // サイン波（丸い音）
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // 高めの音から
+            oscillator.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.1); // 低い音へ
+            
+            // ゲインノードを作成（音量制御用）
+            const gainNode = audioContext.createGain();
+            gainNode.gain.setValueAtTime(0.7, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            // 接続
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // 再生開始
+            oscillator.start();
+            // 0.3秒後に停止
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        // 背景タッチ用のシャラシャラ・キラキラ効果音を生成する関数
+        function createBackgroundTouchSound() {
+            // Web Audio APIのコンテキストを作成
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // 複数の音を組み合わせてキラキラ感を出す
+            for (let i = 0; i < 8; i++) {
+                // 少しずつ遅延させて再生
+                setTimeout(() => {
+                    // オシレーターを作成
+                    const oscillator = audioContext.createOscillator();
+                    oscillator.type = 'triangle'; // 三角波（キラキラした音）
+                    
+                    // ランダムな高い周波数（キラキラ感）
+                    const randomFreq = 2000 + Math.random() * 3000;
+                    oscillator.frequency.setValueAtTime(randomFreq, audioContext.currentTime);
+                    
+                    // ゲインノードを作成（音量制御用）
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // 小さめの音量
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    
+                    // 接続
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    // 再生開始
+                    oscillator.start();
+                    // 短い時間で停止
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                }, i * 50); // 少しずつ遅延
+            }
+        }
+
+        // BGM用のポップでメルヘンなループ音楽を生成する関数
+        function createBGM() {
+            // Web Audio APIのコンテキストを作成
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // BGMの再生状態を管理
+            let isPlaying = false;
+            let mainOscillator = null;
+            let melodyOscillator = null;
+            let mainGain = null;
+            let melodyGain = null;
+            
+            // BGMを開始する関数
+            function startBGM() {
+                if (isPlaying) return;
+                isPlaying = true;
+                
+                // メインの和音（ベース）
+                mainOscillator = audioContext.createOscillator();
+                mainOscillator.type = 'sine';
+                mainOscillator.frequency.setValueAtTime(220, audioContext.currentTime); // A3
+                
+                mainGain = audioContext.createGain();
+                mainGain.gain.setValueAtTime(0.2, audioContext.currentTime);
+                
+                mainOscillator.connect(mainGain);
+                mainGain.connect(audioContext.destination);
+                
+                // メロディー部分
+                melodyOscillator = audioContext.createOscillator();
+                melodyOscillator.type = 'triangle';
+                
+                melodyGain = audioContext.createGain();
+                melodyGain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                
+                melodyOscillator.connect(melodyGain);
+                melodyGain.connect(audioContext.destination);
+                
+                // 開始
+                mainOscillator.start();
+                melodyOscillator.start();
+                
+                // シンプルなメロディーパターン
+                const notes = [330, 392, 440, 392, 330, 294, 330, 392];
+                let noteIndex = 0;
+                
+                // メロディーを定期的に変更
+                function playNextNote() {
+                    if (!isPlaying) return;
+                    
+                    const note = notes[noteIndex];
+                    melodyOscillator.frequency.setValueAtTime(note, audioContext.currentTime);
+                    
+                    // 音量を変化させてリズム感を出す
+                    melodyGain.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    melodyGain.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.3);
+                    
+                    noteIndex = (noteIndex + 1) % notes.length;
+                    
+                    // 次の音符へ
+                    setTimeout(playNextNote, 500);
+                }
+                
+                // メロディー開始
+                playNextNote();
+            }
+            
+            // BGMを停止する関数
+            function stopBGM() {
+                if (!isPlaying) return;
+                
+                // フェードアウト
+                if (mainGain && melodyGain) {
+                    mainGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+                    melodyGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
+                    
+                    setTimeout(() => {
+                        if (mainOscillator) {
+                            mainOscillator.stop();
+                            mainOscillator = null;
+                        }
+                        if (melodyOscillator) {
+                            melodyOscillator.stop();
+                            melodyOscillator = null;
+                        }
+                        mainGain = null;
+                        melodyGain = null;
+                        isPlaying = false;
+                    }, 1000);
+                }
+            }
+            
+            // 制御用のオブジェクトを返す
+            return {
+                start: startBGM,
+                stop: stopBGM,
+                isPlaying: () => isPlaying
+            };
+        }
+
         class BabyTouchGame {
             constructor() {
                 this.container = document.getElementById('gameContainer');
@@ -169,9 +329,19 @@
                 this.emojis = ['🌟', '⭐', '🎈', '🎉', '🎊', '🌈', '🦋', '🌸', '🎵', '💖'];
                 this.animals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐸'];
                 
+                // BGMを作成
+                this.bgm = createBGM();
+                
+                // 最後に効果音を再生した時間（連打防止用）
+                this.lastBallSoundTime = 0;
+                this.lastBackgroundSoundTime = 0;
+                
                 this.init();
                 this.createInitialShapes();
                 this.startBackgroundAnimation();
+                
+                // BGM開始（ユーザーインタラクション後に開始するため、最初のクリックで開始）
+                this.bgmStarted = false;
             }
 
             init() {
@@ -225,10 +395,23 @@
             }
 
             handleContainerClick(e) {
+                // BGMをまだ開始していなければ開始（ユーザーインタラクション後）
+                if (!this.bgmStarted) {
+                    this.bgm.start();
+                    this.bgmStarted = true;
+                }
+                
                 // 空いている場所をクリック/タッチした時の効果
                 if (e.target === this.container) {
                     this.createRipple(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY);
                     this.createEmojiRain(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY);
+                    
+                    // 背景タッチ効果音（連打防止のため、最後の再生から300ms以上経過していれば再生）
+                    const now = Date.now();
+                    if (now - this.lastBackgroundSoundTime > 300) {
+                        createBackgroundTouchSound();
+                        this.lastBackgroundSoundTime = now;
+                    }
                 }
             }
 
@@ -238,7 +421,20 @@
                 this.score++;
                 this.scoreElement.textContent = `タッチした回数: ${this.score}`;
 
-                // 効果音の代わりに視覚効果
+                // BGMをまだ開始していなければ開始（ユーザーインタラクション後）
+                if (!this.bgmStarted) {
+                    this.bgm.start();
+                    this.bgmStarted = true;
+                }
+
+                // ボールタッチ効果音（連打防止のため、最後の再生から200ms以上経過していれば再生）
+                const now = Date.now();
+                if (now - this.lastBallSoundTime > 200) {
+                    createBallTouchSound();
+                    this.lastBallSoundTime = now;
+                }
+
+                // 視覚効果も残す
                 this.playVisualSound(shape);
 
                 // ランダムアニメーション
@@ -346,7 +542,7 @@
             }
 
             playVisualSound(shape) {
-                // 音の代わりに色の変化で表現
+                // 音の代わりに色の変化で表現（視覚効果も残す）
                 const originalBg = shape.style.background;
                 shape.style.background = '#FFD700';
                 shape.style.boxShadow = '0 0 30px #FFD700';

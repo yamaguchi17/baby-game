@@ -231,6 +231,10 @@
             // BGMを開始する関数
             function startBGM() {
                 if (isPlaying) return;
+                // iOSでAudioContextが停止している場合にresume
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
                 isPlaying = true;
                 
                 // メインの和音（ベース）

@@ -14,6 +14,11 @@ function createBGM() {
   function startBGM() {
     if (isPlaying) return;
     isPlaying = true;
+
+    // iOS対応: ユーザー操作時にresume
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }    
     
     // メインの和音（ベース）
     mainOscillator = audioContext.createOscillator();

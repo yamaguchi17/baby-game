@@ -156,6 +156,28 @@
     </div>
 
     <script>
+        // グローバル変数でBGM用AudioContextを宣言
+        let bgmAudioContext = null;
+        let bgmController = null;
+
+        // 最初のユーザーインタラクションでBGM AudioContextをnew
+        function userStartedInteraction() {
+            if (!bgmAudioContext) {
+                bgmAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                bgmController = createBGM(bgmAudioContext); // AudioContextを引数で渡す
+            }
+            if (bgmController && !bgmController.isPlaying()) {
+                // iOSなどでsuspendedになっている場合を考慮
+                if (bgmAudioContext.state === 'suspended') {
+                     bgmAudioContext.resume().then(() => {
+                         bgmController.start();
+                     });
+                } else {
+                     bgmController.start();
+                }
+            }
+        }
+
         // ボールタッチ用の効果音を生成する関数
         function createBallTouchSound() {
             // Web Audio APIのコンテキストを作成
@@ -217,85 +239,86 @@
         }
 
         // BGM用のポップでメルヘンなループ音楽を生成する関数
-        function createBGM() {
-            // Web Audio APIのコンテキストを作成
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
+        function createBGM(audioContext) { // audioContextを引数で受け取る
+            // Web Audio APIのコンテキストを作成 - ここは削除
+            // const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
             // BGMの再生状態を管理
             let isPlaying = false;
             let mainOscillator = null;
             let melodyOscillator = null;
             let mainGain = null;
             let melodyGain = null;
-            
+
             // BGMを開始する関数
             function startBGM() {
                 if (isPlaying) return;
-                // iOSでAudioContextが停止している場合にresume
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
+                // iOSでAudioContextが停止している場合にresume - userStartedInteractionで処理するため削除
+                // if (audioContext.state === 'suspended') {
+                //     audioContext.resume();
+                // }
                 isPlaying = true;
-                
+
                 // メインの和音（ベース）
                 mainOscillator = audioContext.createOscillator();
                 mainOscillator.type = 'sine';
-                mainOscillator.frequency.setValueAtTime(220, audioContext.currentTime); // A3
-                
+                mainOscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+
                 mainGain = audioContext.createGain();
                 mainGain.gain.setValueAtTime(0.2, audioContext.currentTime);
-                
+
                 mainOscillator.connect(mainGain);
                 mainGain.connect(audioContext.destination);
-                
+
                 // メロディー部分
                 melodyOscillator = audioContext.createOscillator();
                 melodyOscillator.type = 'triangle';
-                
+
                 melodyGain = audioContext.createGain();
                 melodyGain.gain.setValueAtTime(0.1, audioContext.currentTime);
-                
+
                 melodyOscillator.connect(melodyGain);
                 melodyGain.connect(audioContext.destination);
-                
+
                 // 開始
                 mainOscillator.start();
                 melodyOscillator.start();
-                
+
                 // シンプルなメロディーパターン
                 const notes = [330, 392, 440, 392, 330, 294, 330, 392];
                 let noteIndex = 0;
-                
+
                 // メロディーを定期的に変更
                 function playNextNote() {
                     if (!isPlaying) return;
-                    
+                    if (!audioContext) return; // Add check for audioContext
+
                     const note = notes[noteIndex];
                     melodyOscillator.frequency.setValueAtTime(note, audioContext.currentTime);
-                    
+
                     // 音量を変化させてリズム感を出す
                     melodyGain.gain.setValueAtTime(0.15, audioContext.currentTime);
                     melodyGain.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.3);
-                    
+
                     noteIndex = (noteIndex + 1) % notes.length;
-                    
+
                     // 次の音符へ
                     setTimeout(playNextNote, 500);
                 }
-                
+
                 // メロディー開始
                 playNextNote();
             }
-            
+
             // BGMを停止する関数
             function stopBGM() {
                 if (!isPlaying) return;
-                
+
                 // フェードアウト
                 if (mainGain && melodyGain) {
                     mainGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
                     melodyGain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 1);
-                    
+
                     setTimeout(() => {
                         if (mainOscillator) {
                             mainOscillator.stop();
@@ -311,7 +334,7 @@
                     }, 1000);
                 }
             }
-            
+
             // 制御用のオブジェクトを返す
             return {
                 start: startBGM,
@@ -328,30 +351,48 @@
                 this.shapes = [];
                 this.colors = [
                     '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-                    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+                    '#DDA0DD', '#98D8C8', 'F7DC6F', '#BB8FCE', '#85C1E9'
                 ];
                 this.emojis = ['🌟', '⭐', '🎈', '🎉', '🎊', '🌈', '🦋', '🌸', '🎵', '💖'];
                 this.animals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐸'];
-                
-                // BGMを作成
-                this.bgm = createBGM();
-                
+
+                // BGMを作成 - ここは削除
+                // this.bgm = createBGM();
+
                 // 最後に効果音を再生した時間（連打防止用）
                 this.lastBallSoundTime = 0;
                 this.lastBackgroundSoundTime = 0;
-                
+
                 this.init();
                 this.createInitialShapes();
                 this.startBackgroundAnimation();
-                
+
                 // BGM開始（ユーザーインタラクション後に開始するため、最初のクリックで開始）
                 this.bgmStarted = false;
             }
 
             init() {
-                this.container.addEventListener('click', this.handleContainerClick.bind(this));
-                this.container.addEventListener('touchstart', this.handleContainerClick.bind(this));
-                
+                // BGM開始（ユーザーインタラクション後に開始するため、最初のクリックで開始）
+                // イベントリスナー内で一度だけuserStartedInteractionを呼び出す
+                const startBGMOnce = (e) => {
+                    if (!this.bgmStarted) {
+                        userStartedInteraction();
+                        this.bgmStarted = true;
+                    }
+                    // Call the original handler for container clicks/touches
+                    this.handleContainerClick(e);
+                };
+
+                // Modify the existing listeners to include the BGM start logic
+                // Remove original listeners first to avoid adding the same handler multiple times
+                this.container.removeEventListener('click', this.handleContainerClick.bind(this));
+                this.container.removeEventListener('touchstart', this.handleContainerClick.bind(this));
+
+                // Add new listeners that include the BGM start logic
+                this.container.addEventListener('click', startBGMOnce.bind(this));
+                this.container.addEventListener('touchstart', startBGMOnce.bind(this));
+
+
                 // 赤ちゃん向けに自動で新しい図形を生成
                 setInterval(() => {
                     if (this.shapes.length < 8) {
@@ -399,17 +440,17 @@
             }
 
             handleContainerClick(e) {
-                // BGMをまだ開始していなければ開始（ユーザーインタラクション後）
-                if (!this.bgmStarted) {
-                    this.bgm.start();
-                    this.bgmStarted = true;
-                }
-                
+                // BGMをまだ開始していなければ開始（ユーザーインタラクション後） - This is now handled in init listeners
+                // if (!this.bgmStarted) {
+                //     this.bgm.start();
+                //     this.bgmStarted = true;
+                // }
+
                 // 空いている場所をクリック/タッチした時の効果
                 if (e.target === this.container) {
                     this.createRipple(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY);
                     this.createEmojiRain(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY);
-                    
+
                     // 背景タッチ効果音（連打防止のため、最後の再生から300ms以上経過していれば再生）
                     const now = Date.now();
                     if (now - this.lastBackgroundSoundTime > 300) {
@@ -425,11 +466,11 @@
                 this.score++;
                 this.scoreElement.textContent = `タッチした回数: ${this.score}`;
 
-                // BGMをまだ開始していなければ開始（ユーザーインタラクション後）
-                if (!this.bgmStarted) {
-                    this.bgm.start();
-                    this.bgmStarted = true;
-                }
+                // BGMをまだ開始していなければ開始（ユーザーインタラクション後） - This is now handled in init listeners
+                // if (!this.bgmStarted) {
+                //     this.bgm.start();
+                //     this.bgmStarted = true;
+                // }
 
                 // ボールタッチ効果音（連打防止のため、最後の再生から200ms以上経過していれば再生）
                 const now = Date.now();
